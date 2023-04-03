@@ -1,0 +1,89 @@
+package handler
+
+import (
+	"bytes"
+	"encoding/json"
+	"errors"
+	"github.com/jiin-yang/auth-guard-v2/api-gateway/middleware"
+	"github.com/labstack/echo/v4"
+	"net/http"
+	"os"
+)
+
+type Handler interface {
+	CreateEmployee(echo.Context) error
+	GetAllEmployees(echo.Context) error
+	CreateEmployeeHandler() echo.HandlerFunc
+}
+
+type handler struct {
+	e *echo.Echo
+	c *http.Client
+}
+
+func NewHandler(e *echo.Echo, c *http.Client) *handler {
+	h := &handler{e: e, c: c}
+	h.registerRoutes()
+	return h
+}
+func (h *handler) registerRoutes() {
+	h.e.POST("/employees", h.CreateEmployee, middleware.CustomValidToken)
+	h.e.GET("/employees", h.GetAllEmployees)
+}
+
+func (h *handler) CreateEmployee(context echo.Context) error {
+	reqBody := CreateEmployeeRequest{}
+	if err := context.Bind(&reqBody); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
+	if reqBody.Name == "" || reqBody.Department == "" {
+		err := errors.New("bad Request - name and department info must")
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
+	reqBodyBytes, err := json.Marshal(reqBody)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	req, err := http.NewRequest("POST", os.Getenv("EMPLOYEE_API")+"/api/v1/employees", bytes.NewReader(reqBodyBytes))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	req.Close = true
+	resp, err := h.c.Do(req)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	defer resp.Body.Close()
+
+	var respBody CreateEmployeeResponse
+	err = json.NewDecoder(resp.Body).Decode(&respBody)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	return context.JSON(http.StatusOK, respBody)
+}
+
+func (h *handler) GetAllEmployees(context echo.Context) error {
+	req, err := http.NewRequest("GET", os.Getenv("EMPLOYEE_API")+"/api/v1/employees", nil)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	req.Close = true
+	resp, err := h.c.Do(req)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	defer resp.Body.Close()
+
+	var employees []Employee
+	err = json.NewDecoder(resp.Body).Decode(&employees)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	return context.JSON(http.StatusOK, employees)
+}

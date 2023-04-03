@@ -1,0 +1,27 @@
+package main
+
+import (
+	"github.com/jiin-yang/auth-guard-v2/api-gateway/handler"
+	"github.com/joho/godotenv"
+	"github.com/labstack/echo/v4"
+	"log"
+	"net/http"
+	"time"
+)
+
+const PORT = ":3010"
+
+func main() {
+	if err := godotenv.Load(); err != nil {
+		log.Fatalf("Error loading the .env file: %v", err)
+	}
+
+	e := echo.New()
+	client := http.Client{Timeout: 10 * time.Second}
+
+	handler.NewHandler(e, &client)
+
+	if err := e.Start(PORT); err != http.ErrServerClosed {
+		log.Fatalf("There was an error with the http server: %v", err)
+	}
+}
