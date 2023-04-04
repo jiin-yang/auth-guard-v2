@@ -76,5 +76,6 @@ If we don't verify, apps with employee service endpoints can access employee ser
 
 For this, the incoming token is parsed and using the RSA256 algorithm,
 Authentication is done with the public key JSON Web Key Set.
+For details of this process, check the verifyToken function in employee-api.
 
 ```
