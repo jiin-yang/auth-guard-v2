@@ -57,6 +57,10 @@ func main() {
 
 func verifyToken(tokenString string) error {
 
+	if tokenString == "" {
+		return errors.New("bearer Token is must")
+	}
+
 	jwksURL := "https://dev-nuiltl2t5mki2uq1.us.auth0.com/.well-known/jwks.json"
 
 	ctx, cancel := context.WithCancel(context.Background())
