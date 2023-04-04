@@ -2,7 +2,11 @@ module github.com/jiin-yang/auth-guard-v2/employee-api
 
 go 1.20
 
-require github.com/labstack/echo/v4 v4.10.2
+require (
+	github.com/MicahParks/keyfunc v1.9.0
+	github.com/golang-jwt/jwt/v4 v4.4.2
+	github.com/labstack/echo/v4 v4.10.2
+)
 
 require (
 	github.com/labstack/gommon v0.4.0 // indirect
