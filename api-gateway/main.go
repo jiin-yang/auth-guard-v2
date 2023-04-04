@@ -6,10 +6,9 @@ import (
 	"github.com/labstack/echo/v4"
 	"log"
 	"net/http"
+	"os"
 	"time"
 )
-
-const PORT = ":3010"
 
 func main() {
 	if err := godotenv.Load(); err != nil {
@@ -21,7 +20,7 @@ func main() {
 
 	handler.NewHandler(e, &client)
 
-	if err := e.Start(PORT); err != http.ErrServerClosed {
+	if err := e.Start(os.Getenv("API_GATEWAY_PORT")); err != http.ErrServerClosed {
 		log.Fatalf("There was an error with the http server: %v", err)
 	}
 }

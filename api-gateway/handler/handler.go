@@ -8,6 +8,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"net/http"
 	"os"
+	"strings"
 )
 
 type Handler interface {
@@ -29,6 +30,36 @@ func NewHandler(e *echo.Echo, c *http.Client) *handler {
 func (h *handler) registerRoutes() {
 	h.e.POST("/employees", h.CreateEmployee, middleware.CustomValidToken)
 	h.e.GET("/employees", h.GetAllEmployees)
+	h.e.GET("/token", h.token)
+}
+
+func (h *handler) token(context echo.Context) error {
+	url := "https://dev-nuiltl2t5mki2uq1.us.auth0.com/oauth/token"
+
+	clientID := os.Getenv("CLIENT_ID")
+	clientSecret := os.Getenv("CLIENT_SECRET")
+
+	payload := strings.NewReader("{\"client_id\":\"" + clientID + "\",\"client_secret\":\"" + clientSecret + "\",\"audience\":\"https://employee-service/\",\"grant_type\":\"client_credentials\"}")
+
+	req, err := http.NewRequest("POST", url, payload)
+	req.Header.Add("content-type", "application/json")
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	req.Close = true
+	resp, err := h.c.Do(req)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	defer resp.Body.Close()
+
+	var token Token
+	err = json.NewDecoder(resp.Body).Decode(&token)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	return context.JSON(http.StatusOK, token)
 }
 
 func (h *handler) CreateEmployee(context echo.Context) error {
@@ -47,7 +78,11 @@ func (h *handler) CreateEmployee(context echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
+	token := context.Request().Header.Get("authorization")
+
 	req, err := http.NewRequest("POST", os.Getenv("EMPLOYEE_API")+"/api/v1/employees", bytes.NewReader(reqBodyBytes))
+	req.Header.Add("content-type", "application/json")
+	req.Header.Add("authorization", token)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}

@@ -13,6 +13,10 @@ import (
 	"time"
 )
 
+type middlewareEchoHandler struct {
+	h echo.HandlerFunc
+}
+
 type CustomClaims struct {
 	Scope string `json:"scope"`
 }
@@ -58,7 +62,7 @@ func CustomValidToken(next echo.HandlerFunc) echo.HandlerFunc {
 		jwtmiddleware.WithErrorHandler(errorHandler),
 	)
 
-	h := myHttpHandler{h: next}
+	h := middlewareEchoHandler{h: next}
 
 	jwtHandler := middleware.CheckJWT(h)
 
@@ -70,11 +74,7 @@ func CustomValidToken(next echo.HandlerFunc) echo.HandlerFunc {
 	return echoHandlerFunc
 }
 
-type myHttpHandler struct {
-	h echo.HandlerFunc
-}
-
-func (m myHttpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (m middlewareEchoHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	c := echo.New().NewContext(r, w)
 	m.h(c)
 }
